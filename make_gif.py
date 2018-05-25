@@ -2,9 +2,12 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
-from scipy.misc import imread, imsave
+from scipy.misc import imread, imsave, imshow
 from moviepy.editor import ImageSequenceClip
 import matplotlib.pyplot as plt
+
+from sklearn.cluster import KMeans
+from sklearn import metrics
 
 
 def main():
@@ -52,5 +55,48 @@ def main():
     plt.show()
 
 
+def kmeans():
+    filename = './s_man.png'
+    image = imread(filename, mode='RGBA')
+    # print(image[:, :, 0])
+    im = image[:, :, 0]
+    # print(len(im[0]))
+
+    im_graph = []
+    for (row_y, row) in enumerate(im):
+        for (point_x, point) in enumerate(row):
+            if point != 0:
+                # print(point)
+                im_graph.append([point_x, row_y])
+
+    im_graph = np.array(im_graph)
+
+    sil_score = []
+    for n_clust in range(2, 40):
+        print('Silhouette score for {} clusters.'.format(n_clust))
+        score = get_sil_score(n_clust, im_graph)
+        sil_score.append(score)
+        print(score)
+
+
+    plt.plot(sil_score)
+    # print(kmeans.inertia_)
+    plt.show()
+
+def get_sil_score(n_clusters, im_graph):
+    kmeans = KMeans(n_clusters=n_clusters, n_jobs = 2)
+    kmeans.fit(im_graph)
+    y_kmeans = kmeans.predict(im_graph)
+
+    # plt.scatter(im_graph[:, 0], im_graph[:, 1], c=y_kmeans, s=50, cmap='viridis')
+
+    centers = kmeans.cluster_centers_
+    # plt.scatter(centers[:, 0], centers[:, 1], c='black', s=100, alpha=0.5);
+    labels = kmeans.labels_
+
+    return metrics.silhouette_score(im_graph, labels, metric='euclidean', sample_size=10000)
+
 if __name__ == "__main__":
-    main()
+    kmeans()
+    # clusters()
+    # test()
