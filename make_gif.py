@@ -59,8 +59,12 @@ def kmeans():
     filename = './s_man.png'
     image = imread(filename, mode='RGBA')
     # print(image[:, :, 0])
-    im = image[:, :, 0]
+    im = image[:80, :, 0]
+    print(im.size)
     # print(len(im[0]))
+
+    plt.imshow(im)
+    plt.show()
 
     im_graph = []
     for (row_y, row) in enumerate(im):
@@ -94,7 +98,8 @@ def get_sil_score(n_clusters, im_graph):
     # plt.scatter(centers[:, 0], centers[:, 1], c='black', s=100, alpha=0.5);
     labels = kmeans.labels_
 
-    return metrics.silhouette_score(im_graph, labels, metric='euclidean', sample_size=10000)
+    sample_size = int(im_graph.size * 0.05)
+    return metrics.silhouette_score(im_graph, labels, metric='euclidean', sample_size=sample_size)
 
 if __name__ == "__main__":
     kmeans()
