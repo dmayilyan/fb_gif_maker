@@ -1,4 +1,4 @@
-#/usr/bin/python3
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 import numpy as np
@@ -15,6 +15,7 @@ import tempfile
 image = None
 all_imege_count = 0
 one_row_count = 0
+filename = 'cat'
 
 # class GifItem():
 #     def __init__(self):
@@ -29,18 +30,18 @@ def main():
     global image
     global all_imege_count
     global one_row_count
-    filename = './s_man.png'
-    image = imread(filename, mode='RGBA')
+    global filename
+    # filename = './s_man.png'
+    # image = imread(filename, mode='RGBA')
 
-    one_row_count = 6
-    all_imege_count = 32
-    column_count = all_imege_count // one_row_count
-    print(all_imege_count % one_row_count)
+    # one_row_count = 6
+    # all_imege_count = 32
+    column_count = int(all_imege_count // one_row_count)
     if all_imege_count % one_row_count != 0:
         column_count += 1
-    print(one_row_count, column_count)
     small_size_w = int(image.shape[0] / one_row_count)
     small_size_h = int(image.shape[1] / column_count)
+
     # images = np.zeros(60, 60)
     print(small_size_w, small_size_h)
 
@@ -50,7 +51,7 @@ def main():
 
     counter = 0
     frames = []
-    alphas = []
+    # alphas = []
     for i in range(one_row_count):
         for j in range(column_count):
             x = int((i % one_row_count) * small_size_w + small_size_w)
@@ -74,8 +75,9 @@ def main():
             counter += 1
 
     print(len(frames))
-    clip = ImageSequenceClip(frames, fps=10)#, with_mask=True, ismask=alphas)
-    clip.write_gif('s_man.gif')
+    # , with_mask=True, ismask=alphas)
+    clip = ImageSequenceClip(frames, fps=10)
+    clip.write_gif(filename + '.gif')
 
     # print(image[:, :, 0])
 
@@ -87,8 +89,10 @@ def main():
 
 # ========================================================
 def _get_image():
-    filename = './s_man.png'
-    return imread(filename, mode='RGBA')
+    global filename
+    fn = './' + filename + '.png'
+    return imread(fn, mode='RGBA')
+
 
 def _get_array(im):
     im_graph = []
@@ -101,27 +105,44 @@ def _get_array(im):
 
     return im_graph
 
+
 def _get_sils(im_graph):
     sil_score = []
-    for n_clust in range(2, 35):
+    # Nah appraoach of skipping extra score calculations
+    skip_buffer = 0
+    for n_clust in range(2, 40):
+        if skip_buffer > 9:
+            continue
         score = _get_sil_score(n_clust, im_graph)
         sil_score.append([n_clust, score])
-        # print('Silhouette score of %.4f for %d clusters.' % (score, n_clust))
+        if n_clust > 2:
+            if sil_score[n_clust - 2][1] < sil_score[n_clust - 3][1]:
+                # print(sil_score[n_clust - 2][1], sil_score[n_clust - 3][1])
+                skip_buffer += 1
+                # print(skip_buffer)
+
+        print('Silhouette score of %.4f for %d clusters.' % (score, n_clust))
 
     return np.array(sil_score)
 
+
 def _get_sil_score(n_clusters, im_graph):
-    kmeans = KMeans(n_clusters=n_clusters, n_jobs = 2)
+    '''Get one Silhouette score.'''
+    kmeans = KMeans(n_clusters=n_clusters, n_jobs=2)
     kmeans.fit(im_graph)
-    y_kmeans = kmeans.predict(im_graph)
 
-    # plt.scatter(im_graph[:, 0], im_graph[:, 1], c=y_kmeans, s=50, cmap='viridis')
+    # y_kmeans = kmeans.predict(im_graph)
+    # plt.scatter(im_graph[:, 0], im_graph[:, 1],
+    #             c=y_kmeans, s=50, cmap='viridis')
 
-    centers = kmeans.cluster_centers_
+    # centers = kmeans.cluster_centers_
     # plt.scatter(centers[:, 0], centers[:, 1], c='black', s=100, alpha=0.5);
     labels = kmeans.labels_
     sample_size = int(im_graph.size * 0.05)
-    return metrics.silhouette_score(im_graph, labels, metric='euclidean', sample_size=sample_size)
+    return metrics.silhouette_score(im_graph, labels,
+                                    metric='euclidean',
+                                    sample_size=sample_size)
+
 
 def _get_sil_max_pair(sil_scores):
     sc = sil_scores[..., 1]
@@ -129,14 +150,18 @@ def _get_sil_max_pair(sil_scores):
 
     return sil_scores[arg]
 
+
 def _get_frame_count(im):
     im_graph = _get_array(im)
 
     silhouette_scores = _get_sils(im_graph)
     return _get_sil_max_pair(silhouette_scores)
 
+
 def _get_channel_average(image, y_cut=None):
-    return (image[:y_cut, :, 0] + image[:y_cut, :, 1] + image[:y_cut, :, 2]) / 3
+    return (image[:y_cut, :, 0] +
+            image[:y_cut, :, 1] +
+            image[:y_cut, :, 2]) / 3
 
 
 def kmeans():
@@ -156,21 +181,19 @@ def kmeans():
     sil_max_pair = _get_frame_count(im)
     all_imege_count = sil_max_pair[0]
 
-    print('Found %d pictures with score of %f' % (sil_max_pair[0], sil_max_pair[1]) )
+    print('Found %d pictures with score of %f' %
+          (sil_max_pair[0], sil_max_pair[1]))
     print('Getting number of photos on one row.')
-
 
     # Second stage of scan.
     # Number of frames in one row
     im = _get_channel_average(image, 80)
 
     sil_max_pair = _get_frame_count(im)
-    one_row_count = sil_max_pair[0]
+    one_row_count = int(sil_max_pair[0])
 
     print('Found %d pictures with score of %.4f' %
-          (sil_max_pair[0], sil_max_pair[1]) )
-
-
+          (sil_max_pair[0], sil_max_pair[1]))
 
     # Dimensions of the picture are %dx
 
@@ -188,7 +211,7 @@ if __name__ == "__main__":
     # print(type(qwe))
     # print(qwe)
 
-    # kmeans()
+    kmeans()
     main()
 
     # clusters()
