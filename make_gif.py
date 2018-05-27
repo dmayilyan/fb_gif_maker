@@ -12,52 +12,69 @@ from sklearn import metrics
 from urllib import request
 import tempfile
 
-class GifItem():
-    def __init__(self):
-        image = _get_image()
+image = None
+all_imege_count = 0
+one_row_count = 0
 
-    def _get_image(self):
-        filename = './shake.png'
-        return imread(filename, mode='RGBA')
+# class GifItem():
+#     def __init__(self):
+#         image = _get_image()
+
+#     def _get_image(self):
+#         filename = './shake.png'
+#         return imread(filename, mode='RGBA')
 
 
 def main():
-    filename = './shake.png'
+    global image
+    global all_imege_count
+    global one_row_count
+    filename = './s_man.png'
     image = imread(filename, mode='RGBA')
-    print(image.shape)
 
-    # width = image.shape[0]
-    # height = image.shape[1]
-    small_size_w = int(image.shape[0] / 3)
-    small_size_h = int(image.shape[1] / 3)
+    one_row_count = 6
+    all_imege_count = 36
+    column_count = all_imege_count // one_row_count
+    print(all_imege_count % one_row_count)
+    if all_imege_count % one_row_count != 0:
+        column_count += 1
+    print(one_row_count, column_count)
+    small_size_w = int(image.shape[0] / one_row_count)
+    small_size_h = int(image.shape[1] / column_count)
     # images = np.zeros(60, 60)
-    plt.figure(1)
-    plt.imshow(image)
+    print(small_size_w, small_size_h)
+
+    # plt.figure(1)
+    # plt.imshow(image)
     plt.figure(2)
 
     counter = 0
     frames = []
     alphas = []
-    for i in range(3):
-        for j in range(3):
-            x = int((i % 3) * small_size_w + small_size_w)
-            y = int((j % 3) * small_size_h + small_size_h)
+    for i in range(one_row_count):
+        for j in range(column_count):
+            x = int((i % one_row_count) * small_size_w + small_size_w)
+            y = int((j % column_count) * small_size_h + small_size_h)
 
             x0 = x - small_size_w
             y0 = y - small_size_h
             # print(x0, x)
             # print(y0, y, end='\n\n')
 
-            plt.subplot(331 + counter)
-            frames.append(image[x0:x, y0:y, :2])
-            # alphas.append(image[x0:x, y0:y, 3])
+            # z = np.zeros((x,y))
+            # print(z)
+            plt.subplot(one_row_count, column_count, counter + 1)
+            frames.append(image[x0:x, y0:y, :])
+            # alphas.append(z)
             im = image[x0:x, y0:y, :]
             plt.imshow(im)
 
             counter += 1
 
-    clip = ImageSequenceClip(frames, fps=15)#, with_mask=True, ismask=alphas)
-    clip.write_gif('shake.gif')
+    print(len(frames))
+    clip = ImageSequenceClip(frames, fps=10)#, with_mask=True, ismask=alphas)
+    clip.write_gif('s_man.gif')
+
     # print(image[:, :, 0])
 
     # im = image[:80, :80, :]
@@ -66,8 +83,7 @@ def main():
     plt.show()
 
 
-
-
+# ========================================================
 def _get_image():
     filename = './s_man.png'
     return imread(filename, mode='RGBA')
@@ -85,10 +101,10 @@ def _get_array(im):
 
 def _get_sils(im_graph):
     sil_score = []
-    for n_clust in range(2, 40):
+    for n_clust in range(2, 35):
         score = _get_sil_score(n_clust, im_graph)
         sil_score.append([n_clust, score])
-        print('Silhouette score of %.4f for %d clusters.' % (score, n_clust))
+        # print('Silhouette score of %.4f for %d clusters.' % (score, n_clust))
 
     return np.array(sil_score)
 
@@ -111,18 +127,32 @@ def _get_sil_max_pair(sil_scores):
 
     return sil_scores[arg]
 
+def _get_frame_count(im):
+    im_graph = _get_array(im)
+
+    silhouette_scores = _get_sils(im_graph)
+    return _get_sil_max_pair(silhouette_scores)
+
+def _get_channel_average(image, y_cut=None):
+    return (image[:y_cut, :, 0] + image[:y_cut, :, 1] + image[:y_cut, :, 2]) / 3
+
+
 def kmeans():
+    global image
+    global all_imege_count
+    global one_row_count
     image = _get_image()
 
     # First stage of scan.
     # Overall number of frames
-    im = (image[:, :, 0] + image[:, :, 1] + image[:, :, 2]) / 3
 
-    im_graph = _get_array(im)
+    im = _get_channel_average(image)
 
-    silhouette_scores = _get_sils(im_graph)
-    sil_max_pair = _get_sil_max_pair(silhouette_scores)
-    all_iamge_count = sil_max_pair[0]
+    # plt.imshow(im_1)
+    # plt.show()
+
+    sil_max_pair = _get_frame_count(im)
+    all_imege_count = sil_max_pair[0]
 
     print('Found %d pictures with score of %f' % (sil_max_pair[0], sil_max_pair[1]) )
     print('Getting number of photos on one row.')
@@ -130,23 +160,17 @@ def kmeans():
 
     # Second stage of scan.
     # Number of frames in one row
-    im = (image[:80, :, 0] + image[:80, :, 1] + image[:80, :, 2]) / 3
-    print(im.size)
-    # print(len(im[0]))
+    im = _get_channel_average(image, 80)
 
-    # plt.imshow(im)
-    # plt.show()
-
-    im_graph = _get_array(im)
-
-    silhouette_scores = _get_sils(im_graph)
-    sil_max_pair = _get_sil_max_pair(silhouette_scores)
+    sil_max_pair = _get_frame_count(im)
     one_row_count = sil_max_pair[0]
 
     print('Found %d pictures with score of %.4f' %
           (sil_max_pair[0], sil_max_pair[1]) )
 
 
+
+    # Dimensions of the picture are %dx
 
     # plt.plot(silhouette_scores)
     # print(kmeans.inertia_)
@@ -161,8 +185,9 @@ if __name__ == "__main__":
     # qwe = request.urlretrieve(url, 'temp.png')
     # print(type(qwe))
     # print(qwe)
-    # plt.imshow(imread('temp.png'))
-    # plt.show()
-    kmeans()
+
+    # kmeans()
+    main()
+
     # clusters()
     # test()
