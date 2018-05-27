@@ -10,7 +10,7 @@ from sklearn.cluster import KMeans
 from sklearn import metrics
 
 from urllib import request
-
+import tempfile
 
 class GifItem():
     def __init__(self):
@@ -77,7 +77,6 @@ def _get_array(im):
     for (row_y, row) in enumerate(im):
         for (point_x, point) in enumerate(row):
             if point != 0:
-                # print(point)
                 im_graph.append([point_x, row_y])
 
     im_graph = np.array(im_graph)
@@ -86,11 +85,10 @@ def _get_array(im):
 
 def _get_sils(im_graph):
     sil_score = []
-    for n_clust in range(2, 10):
-        print('Silhouette score for {} clusters.'.format(n_clust))
+    for n_clust in range(2, 40):
         score = _get_sil_score(n_clust, im_graph)
         sil_score.append([n_clust, score])
-        print(score)
+        print('Silhouette score of %.4f for %d clusters.' % (score, n_clust))
 
     return np.array(sil_score)
 
@@ -115,8 +113,24 @@ def _get_sil_max_pair(sil_scores):
 
 def kmeans():
     image = _get_image()
-    # print(image[:, :, 0])
-    im = (image[:160, :240, 0] + image[:160, :240, 1] + image[:160, :240, 2]) / 3
+
+    # First stage of scan.
+    # Overall number of frames
+    im = (image[:, :, 0] + image[:, :, 1] + image[:, :, 2]) / 3
+
+    im_graph = _get_array(im)
+
+    silhouette_scores = _get_sils(im_graph)
+    sil_max_pair = _get_sil_max_pair(silhouette_scores)
+    all_iamge_count = sil_max_pair[0]
+
+    print('Found %d pictures with score of %f' % (sil_max_pair[0], sil_max_pair[1]) )
+    print('Getting number of photos on one row.')
+
+
+    # Second stage of scan.
+    # Number of frames in one row
+    im = (image[:80, :, 0] + image[:80, :, 1] + image[:80, :, 2]) / 3
     print(im.size)
     # print(len(im[0]))
 
@@ -127,8 +141,12 @@ def kmeans():
 
     silhouette_scores = _get_sils(im_graph)
     sil_max_pair = _get_sil_max_pair(silhouette_scores)
+    one_row_count = sil_max_pair[0]
 
-    print('Found %d pictures with score of %f' % (sil_max_pair[0], sil_max_pair[1]) )
+    print('Found %d pictures with score of %.4f' %
+          (sil_max_pair[0], sil_max_pair[1]) )
+
+
 
     # plt.plot(silhouette_scores)
     # print(kmeans.inertia_)
@@ -136,7 +154,11 @@ def kmeans():
 
 
 if __name__ == "__main__":
-    # qwe = request.urlretrieve('https://scontent-ams3-1.xx.fbcdn.net/v/t39.1997-6/p480x480/10333117_657500967666494_1630318166_n.png?_nc_cat=0&oh=321e4797068402fd69862e12ab4cce2e&oe=5B7672A8', 'temp.png')
+    # url = 'https://scontent-ams3-1.xx.fbcdn.net/v/t39.1997-6/p480x480/10333117_657500967666494_1630318166_n.png?_nc_cat=0&oh=321e4797068402fd69862e12ab4cce2e&oe=5B7672A8'
+    # with urllib.request.urlopen(url) as response:
+    #     with tempfile.NamedTemporaryFile(delete=False) as tmp_file:
+    #         shutil.copyfileobj(response, tmp_file)
+    # qwe = request.urlretrieve(url, 'temp.png')
     # print(type(qwe))
     # print(qwe)
     # plt.imshow(imread('temp.png'))
