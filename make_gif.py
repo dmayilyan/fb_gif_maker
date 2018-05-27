@@ -1,14 +1,19 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+# image manipulation and plotting
 import numpy as np
 from scipy.misc import imread, imsave, imshow
-from moviepy.editor import ImageSequenceClip
 import matplotlib.pyplot as plt
 
+# Clustering
 from sklearn.cluster import KMeans
 from sklearn import metrics
 
+# Gif creation
+from moviepy.editor import ImageSequenceClip
+
+# Image from web
 from urllib import request
 import tempfile
 
@@ -27,6 +32,7 @@ filename = 'cat'
 
 
 def main():
+    '''Main container of gif creation. Needs refactoring.'''
     global image
     global all_imege_count
     global one_row_count
@@ -43,7 +49,7 @@ def main():
     small_size_h = int(image.shape[1] / column_count)
 
     # images = np.zeros(60, 60)
-    print(small_size_w, small_size_h)
+    # print(small_size_w, small_size_h)
 
     # plt.figure(1)
     # plt.imshow(image)
@@ -89,12 +95,14 @@ def main():
 
 # ========================================================
 def _get_image():
+    '''Read image from file.'''
     global filename
     fn = './' + filename + '.png'
     return imread(fn, mode='RGBA')
 
 
-def _get_array(im):
+def _get_point_array(im):
+    '''Get non-zero point array.'''
     im_graph = []
     for (row_y, row) in enumerate(im):
         for (point_x, point) in enumerate(row):
@@ -107,6 +115,7 @@ def _get_array(im):
 
 
 def _get_sils(im_graph):
+    '''Go through silhouette score counting.'''
     sil_score = []
     # Nah appraoach of skipping extra score calculations
     skip_buffer = 0
@@ -145,6 +154,7 @@ def _get_sil_score(n_clusters, im_graph):
 
 
 def _get_sil_max_pair(sil_scores):
+    '''Select pair with maximum silhouette score.'''
     sc = sil_scores[..., 1]
     arg = np.argmax(sc)
 
@@ -152,13 +162,14 @@ def _get_sil_max_pair(sil_scores):
 
 
 def _get_frame_count(im):
-    im_graph = _get_array(im)
+    im_graph = _get_point_array(im)
 
     silhouette_scores = _get_sils(im_graph)
     return _get_sil_max_pair(silhouette_scores)
 
 
 def _get_channel_average(image, y_cut=None):
+    '''Average of color channels'''
     return (image[:y_cut, :, 0] +
             image[:y_cut, :, 1] +
             image[:y_cut, :, 2]) / 3
