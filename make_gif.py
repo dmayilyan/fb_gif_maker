@@ -33,7 +33,7 @@ def main():
     image = imread(filename, mode='RGBA')
 
     one_row_count = 6
-    all_imege_count = 36
+    all_imege_count = 32
     column_count = all_imege_count // one_row_count
     print(all_imege_count % one_row_count)
     if all_imege_count % one_row_count != 0:
@@ -63,6 +63,8 @@ def main():
 
             # z = np.zeros((x,y))
             # print(z)
+            if counter >= all_imege_count:
+                continue
             plt.subplot(one_row_count, column_count, counter + 1)
             frames.append(image[x0:x, y0:y, :])
             # alphas.append(z)
