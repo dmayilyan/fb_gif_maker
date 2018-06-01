@@ -20,7 +20,7 @@ import tempfile
 image = None
 all_imege_count = 0
 one_row_count = 0
-filename = 'cat'
+filename = 's_man'
 
 # class GifItem():
 #     def __init__(self):
@@ -37,19 +37,24 @@ def main():
     global all_imege_count
     global one_row_count
     global filename
-    # filename = './s_man.png'
-    # image = imread(filename, mode='RGBA')
+    image = imread('./' + filename + '.png', mode='RGBA')
 
-    # one_row_count = 6
-    # all_imege_count = 32
+    # one_row_count = 2
+    # all_imege_count = 4
     column_count = int(all_imege_count // one_row_count)
+    print(column_count)
+    # print(all_imege_count % one_row_count)
     if all_imege_count % one_row_count != 0:
         column_count += 1
-    small_size_w = int(image.shape[0] / one_row_count)
-    small_size_h = int(image.shape[1] / column_count)
+
+    print(column_count)
+    # return 0
+    print(image.shape)
+    small_size_w = int(image.shape[1] / one_row_count)
+    small_size_h = int(image.shape[0] / column_count)
 
     # images = np.zeros(60, 60)
-    # print(small_size_w, small_size_h)
+    print(small_size_w, small_size_h)
 
     # plt.figure(1)
     # plt.imshow(image)
@@ -58,10 +63,15 @@ def main():
     counter = 0
     frames = []
     # alphas = []
-    for i in range(one_row_count):
-        for j in range(column_count):
-            x = int((i % one_row_count) * small_size_w + small_size_w)
-            y = int((j % column_count) * small_size_h + small_size_h)
+    print('Width %d\tHeight: %d' % (image.shape[1], image.shape[0]))
+    print('One row: %d\tColumn_count: %d\n' % (one_row_count, column_count))
+
+    for i in range(column_count):
+        for j in range(one_row_count):
+            x = int((j % one_row_count) * small_size_w + small_size_w)
+            y = int((i % column_count) * small_size_h + small_size_h)
+
+            # print('X: %d\t Y: %d' % (x, y))
 
             x0 = x - small_size_w
             y0 = y - small_size_h
@@ -72,17 +82,22 @@ def main():
             # print(z)
             if counter >= all_imege_count:
                 continue
-            plt.subplot(one_row_count, column_count, counter + 1)
-            frames.append(image[x0:x, y0:y, :])
+            plt.subplot(column_count, one_row_count, counter + 1)
+
+            # Here is a bug
+            # x,y = y,x
+            # x0,y0 = y0,x0
+            frames.append(image[y0:y, x0:x, :])
             # alphas.append(z)
-            im = image[x0:x, y0:y, :]
+            im = image[y0:y, x0:x, :]
+            # imsave("./tempdir/frame_%d.png" % counter, im)
             plt.imshow(im)
+            # plt.show()
 
             counter += 1
 
-    print(len(frames))
-    # , with_mask=True, ismask=alphas)
     clip = ImageSequenceClip(frames, fps=10)
+    # clip = ImageSequenceClip('./tempdir/', fps=10, with_mask=True)
     clip.write_gif(filename + '.gif')
 
     # print(image[:, :, 0])
@@ -183,11 +198,7 @@ def kmeans():
 
     # First stage of scan.
     # Overall number of frames
-
     im = _get_channel_average(image)
-
-    # plt.imshow(im_1)
-    # plt.show()
 
     sil_max_pair = _get_frame_count(im)
     all_imege_count = sil_max_pair[0]
@@ -199,18 +210,14 @@ def kmeans():
     # Second stage of scan.
     # Number of frames in one row
     im = _get_channel_average(image, 80)
+    # plt.imshow(im)
+    # plt.show()
 
     sil_max_pair = _get_frame_count(im)
     one_row_count = int(sil_max_pair[0])
 
     print('Found %d pictures with score of %.4f' %
           (sil_max_pair[0], sil_max_pair[1]))
-
-    # Dimensions of the picture are %dx
-
-    # plt.plot(silhouette_scores)
-    # print(kmeans.inertia_)
-    # plt.show()
 
 
 if __name__ == "__main__":
