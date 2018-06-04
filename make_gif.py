@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
+"""
+Blablabla
+"""
 # image manipulation and plotting
 import numpy as np
 from scipy.misc import imread, imsave, imshow
 import matplotlib.pyplot as plt
+import argparse
 
 # Clustering
 from sklearn.cluster import KMeans
@@ -16,11 +19,27 @@ from moviepy.editor import ImageSequenceClip
 # Image from web
 from urllib import request
 import tempfile
+import shutil
+
 
 image = None
 all_imege_count = 0
 one_row_count = 0
 filename = 's_man'
+
+
+def get_args():
+    parser = argparse.ArgumentParser(description='Tool to generate gif files' +
+                                     ' from facebook stickers.')
+
+    parser.add_argument('-f', '--file', help='Import image as a file')
+    parser.add_argument('-l', '--list',
+                        help='List image files in the current dir')
+    parser.add_argument('-u', '--url',
+                        help='Get an image from direct web link.')
+
+    args = parser.parse_args()
+
 
 # class GifItem():
 #     def __init__(self):
@@ -29,6 +48,7 @@ filename = 's_man'
 #     def _get_image(self):
 #         filename = './shake.png'
 #         return imread(filename, mode='RGBA')
+
 
 
 def main():
@@ -141,9 +161,7 @@ def _get_sils(im_graph):
         sil_score.append([n_clust, score])
         if n_clust > 2:
             if sil_score[n_clust - 2][1] < sil_score[n_clust - 3][1]:
-                # print(sil_score[n_clust - 2][1], sil_score[n_clust - 3][1])
                 skip_buffer += 1
-                # print(skip_buffer)
 
         print('Silhouette score of %.4f for %d clusters.' % (score, n_clust))
 
@@ -220,17 +238,30 @@ def kmeans():
           (sil_max_pair[0], sil_max_pair[1]))
 
 
-if __name__ == "__main__":
-    # url = 'https://scontent-ams3-1.xx.fbcdn.net/v/t39.1997-6/p480x480/10333117_657500967666494_1630318166_n.png?_nc_cat=0&oh=321e4797068402fd69862e12ab4cce2e&oe=5B7672A8'
-    # with urllib.request.urlopen(url) as response:
-    #     with tempfile.NamedTemporaryFile(delete=False) as tmp_file:
-    #         shutil.copyfileobj(response, tmp_file)
+# ========================================================
+def get_url_image():
+    url = 'https://scontent-ams3-1.xx.fbcdn.net/v/t39.1997-6/p480x480/10333117_657500967666494_1630318166_n.png?_nc_cat=0&oh=321e4797068402fd69862e12ab4cce2e&oe=5B7672A8'
+    with request.urlopen(url) as response:
+        with tempfile.NamedTemporaryFile(delete=False) as tmp_file:
+            shutil.copyfileobj(response, tmp_file)
+            im = imread(tmp_file, mode='RGBA')
+            plt.imshow(im)
+            plt.show()
     # qwe = request.urlretrieve(url, 'temp.png')
-    # print(type(qwe))
-    # print(qwe)
 
-    kmeans()
-    main()
+
+class ImageFrames(object):
+    """Create frames from input image"""
+    def __init__(self, arg):
+        get_args()
+        super(ImageFrames, self).__init__()
+        self.arg = arg
+        
+
+
+if __name__ == "__main__":
+    get_url_image()
+    # kmeans()
+    # main()
 
     # clusters()
-    # test()
