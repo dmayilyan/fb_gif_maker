@@ -3,6 +3,12 @@
 """
 Blablabla
 """
+
+# General purpose
+import sys
+import os
+
+
 # image manipulation and plotting
 import numpy as np
 from scipy.misc import imread, imsave, imshow
@@ -18,6 +24,7 @@ from moviepy.editor import ImageSequenceClip
 
 # Image from web
 from urllib import request
+# from urllib2 import Request, urlopen, URLError
 import tempfile
 import shutil
 
@@ -28,30 +35,29 @@ one_row_count = 0
 filename = 's_man'
 
 
-def get_args():
-    parser = argparse.ArgumentParser(description='Tool to generate gif files' +
-                                     ' from facebook stickers.')
+def get_parser(args=None):
+    parser = argparse.ArgumentParser(description='Tool to generate .gif file' +
+                                     ' from facebook sticker.')
 
     parser.add_argument('-f', '--file', help='Import image as a file')
-    parser.add_argument('-l', '--list',
-                        help='List image files in the current dir')
+    parser.add_argument('-l', '--list', action='store_true',
+                        help='List image files in the current dir.')
     parser.add_argument('-u', '--url',
                         help='Get an image from direct web link.')
 
-    args = parser.parse_args()
+    return parser
 
 
 # class GifItem():
 #     def __init__(self):
-#         image = _get_image()
+#         image = _get_file_image()
 
-#     def _get_image(self):
+#     def _get_file_image(self):
 #         filename = './shake.png'
 #         return imread(filename, mode='RGBA')
 
 
-
-def main():
+def main1():
     '''Main container of gif creation. Needs refactoring.'''
     global image
     global all_imege_count
@@ -129,7 +135,7 @@ def main():
 
 
 # ========================================================
-def _get_image():
+def _get_file_image():
     '''Read image from file.'''
     global filename
     fn = './' + filename + '.png'
@@ -212,7 +218,7 @@ def kmeans():
     global image
     global all_imege_count
     global one_row_count
-    image = _get_image()
+    image = _get_file_image()
 
     # First stage of scan.
     # Overall number of frames
@@ -239,28 +245,82 @@ def kmeans():
 
 
 # ========================================================
-def get_url_image():
-    url = 'https://scontent-ams3-1.xx.fbcdn.net/v/t39.1997-6/p480x480/10333117_657500967666494_1630318166_n.png?_nc_cat=0&oh=321e4797068402fd69862e12ab4cce2e&oe=5B7672A8'
+def _get_url_image(url):
+    # url = 'https://scontent-ams3-1.xx.fbcdn.net/v/t39.1997-6/p480x480/10333117_657500967666494_1630318166_n.png?_nc_cat=0&oh=321e4797068402fd69862e12ab4cce2e&oe=5B7672A8'
+    im = ''
     with request.urlopen(url) as response:
         with tempfile.NamedTemporaryFile(delete=False) as tmp_file:
             shutil.copyfileobj(response, tmp_file)
             im = imread(tmp_file, mode='RGBA')
-            plt.imshow(im)
-            plt.show()
+            # plt.imshow(im)
+            # plt.show()
+    return im
     # qwe = request.urlretrieve(url, 'temp.png')
 
 
-class ImageFrames(object):
+class ImageFrames():
     """Create frames from input image"""
-    def __init__(self, arg):
-        get_args()
-        super(ImageFrames, self).__init__()
-        self.arg = arg
-        
+    def __init__(self):
+        print(arg_list)
+        # super(ImageFrames, self).__init__()
+        # self.arg = arg
+
+
+
+# def validateUrl(url):
+#     # req = Request(url)
+#     try:
+#         request.urlopen(url)
+#     except IOError as e:
+#         raise e
+#         print('Njah')
+#         return False
+
+#     return True
+
+
+def main(args=None):
+    arg_list = get_parser().parse_args(args)
+
+    if arg_list.list:
+        files = []
+        [files.append(f) for f in os.listdir('./') if f.endswith('.png')]
+        if files != []:
+            print('Available supported images in the current dir are:')
+            [print('%d. %s' % (i + 1, f)) for (i, f) in enumerate(files)]
+        else:
+            print('There are no .png files in the dir.')
+
+    if arg_list.file:
+        if os.path.isfile(arg_list.file):
+            print(arg_list.file)
+        else:
+            print('File not found.')
+
+
+    # url = 'https://scontent-ams3-1.xx.fbcdn.net/v/t39.1997-6/p480x480/10333117_657500967666494_1630318166_n.png?_nc_cat=0&oh=321e4797068402fd69862e12ab4cce2e&oe=5B7672A8'
+
+    if arg_list.url:
+        im = _get_url_image(arg_list.url)
+        return im
+        # plt.imshow(im)
+        # plt.show()
+
+        # print(validateUrl(url))
+
+
+
+    # print(arg_list.list)
+    # print(arg_list.file)
+    # print(arg_list.url)
+
+    # image = ImageFrames()
 
 
 if __name__ == "__main__":
-    get_url_image()
+    handle_args(sys.argv[1:])
+
+    # _get_url_image()
     # kmeans()
     # main()
 
