@@ -29,9 +29,6 @@ import tempfile
 import shutil
 
 
-image = None
-all_imege_count = 0
-one_row_count = 0
 filename = 's_man.png'
 
 
@@ -63,10 +60,10 @@ def main1():
     global all_imege_count
     global one_row_count
     global filename
-    image = imread('./' + filename + '.png', mode='RGBA')
+    image = imread('./' + filename, mode='RGBA')
 
-    # one_row_count = 2
-    # all_imege_count = 4
+    one_row_count = 2
+    all_imege_count = 4
     column_count = int(all_imege_count // one_row_count)
     print(column_count)
     # print(all_imege_count % one_row_count)
@@ -122,6 +119,8 @@ def main1():
 
             counter += 1
 
+    print(frames)
+
     clip = ImageSequenceClip(frames, fps=10)
     # clip = ImageSequenceClip('./tempdir/', fps=10, with_mask=True)
     clip.write_gif(filename + '.gif')
@@ -133,8 +132,109 @@ def main1():
     # plt.imshow(im)
     plt.show()
 
+class ImageFrames():
+    """Create frames from input image"""
+    def __init__(self):
+        self.image = handle_args(sys.argv[1:])
+        self.all_imege_count = 0
+        self.one_row_count = 0
 
-# ========================================================
+        # print(arg_list)
+        # super(ImageFrames, self).__init__()
+        # self.arg = arg
+
+    def seperate_frames(self):
+        # First stage of scan.
+        # Overall number of frames
+        im = self._get_channel_average()
+
+        sil_max_pair = self._get_frame_count(im)
+        self.all_imege_count = sil_max_pair[0]
+
+        print('Found %d pictures with score of %f' %
+              (sil_max_pair[0], sil_max_pair[1]))
+        print('Getting number of photos on one row.')
+
+        # Second stage of scan.
+        # Number of frames in one row
+        im = self._get_channel_average(80)
+        # plt.imshow(im)
+        # plt.show()
+
+        sil_max_pair = self._get_frame_count(im)
+        self.one_row_count = int(sil_max_pair[0])
+
+        print('Found %d pictures with score of %.4f' %
+              (sil_max_pair[0], sil_max_pair[1]))
+
+    def _get_channel_average(self, y_cut=None):
+        '''Average of color channels'''
+        return (self.image[:y_cut, :, 0] +
+                self.image[:y_cut, :, 1] +
+                self.image[:y_cut, :, 2]) / 3
+
+    def _get_frame_count(self, im):
+        im_graph = self._get_point_array(im)
+
+        silhouette_scores = self._get_sils(im_graph)
+        return self._get_sil_max_pair(silhouette_scores)
+
+    def _get_point_array(self, im):
+        '''Get non-zero point array.'''
+        im_graph = []
+        for (row_y, row) in enumerate(im):
+            for (point_x, point) in enumerate(row):
+                if point != 0:
+                    im_graph.append([point_x, row_y])
+
+        return np.array(im_graph)
+
+    def _get_sils(self, im_graph):
+        '''Go through silhouette score counting.'''
+        sil_score = []
+        # Nah appraoach of skipping extra score calculations
+        skip_buffer = 0
+        for n_clust in range(2, 40):
+            if skip_buffer > 9:
+                continue
+            score = self._get_sil_score(n_clust, im_graph)
+            sil_score.append([n_clust, score])
+            if n_clust > 2:
+                if sil_score[n_clust - 2][1] < sil_score[n_clust - 3][1]:
+                    skip_buffer += 1
+
+            print('Silhouette score of %.4f for %d clusters.' %
+                  (score, n_clust))
+
+        return np.array(sil_score)
+
+    def _get_sil_max_pair(self, sil_scores):
+        '''Select pair with maximum silhouette score.'''
+        sc = sil_scores[..., 1]
+        arg = np.argmax(sc)
+
+        return sil_scores[arg]
+
+    def _get_sil_score(self, n_clusters, im_graph):
+        '''Get one Silhouette score.'''
+        kmeans = KMeans(n_clusters=n_clusters, n_jobs=2)
+        kmeans.fit(im_graph)
+
+        # y_kmeans = kmeans.predict(im_graph)
+        # plt.scatter(im_graph[:, 0], im_graph[:, 1],
+        #             c=y_kmeans, s=50, cmap='viridis')
+
+        # centers = kmeans.cluster_centers_
+        # plt.scatter(centers[:, 0], centers[:, 1],
+        #             c='black', s=100, alpha=0.5)
+
+        labels = kmeans.labels_
+        sample_size = int(im_graph.size * 0.05)
+        return metrics.silhouette_score(im_graph, labels,
+                                        metric='euclidean',
+                                        sample_size=sample_size)
+
+
 def _get_file_image(fn):
     '''Read image from file.'''
     # global filename
@@ -156,130 +256,10 @@ def _get_url_image(url):
     # qwe = request.urlretrieve(url, 'temp.png')
 
 
-class ImageFrames():
-    """Create frames from input image"""
-    def __init__(self):
-        self.image = None
-        self.all_imege_count = 0
-        self.one_row_count = 0
-
-        print(arg_list)
-        # super(ImageFrames, self).__init__()
-        # self.arg = arg
-
-    def seperate_frames():
-        global image
-        global all_imege_count
-        global one_row_count
-        image = _get_file_image(filename)
-
-        # First stage of scan.
-        # Overall number of frames
-        im = _get_channel_average(image)
-
-        sil_max_pair = _get_frame_count(im)
-        all_imege_count = sil_max_pair[0]
-
-        print('Found %d pictures with score of %f' %
-              (sil_max_pair[0], sil_max_pair[1]))
-        print('Getting number of photos on one row.')
-
-        # Second stage of scan.
-        # Number of frames in one row
-        im = _get_channel_average(image, 80)
-        # plt.imshow(im)
-        # plt.show()
-
-        sil_max_pair = _get_frame_count(im)
-        one_row_count = int(sil_max_pair[0])
-
-        print('Found %d pictures with score of %.4f' %
-              (sil_max_pair[0], sil_max_pair[1]))
-
-    def _get_point_array(im):
-        '''Get non-zero point array.'''
-        im_graph = []
-        for (row_y, row) in enumerate(im):
-            for (point_x, point) in enumerate(row):
-                if point != 0:
-                    im_graph.append([point_x, row_y])
-
-        im_graph = np.array(im_graph)
-
-        return im_graph
-
-    def _get_sils(im_graph):
-        '''Go through silhouette score counting.'''
-        sil_score = []
-        # Nah appraoach of skipping extra score calculations
-        skip_buffer = 0
-        for n_clust in range(2, 40):
-            if skip_buffer > 9:
-                continue
-            score = _get_sil_score(n_clust, im_graph)
-            sil_score.append([n_clust, score])
-            if n_clust > 2:
-                if sil_score[n_clust - 2][1] < sil_score[n_clust - 3][1]:
-                    skip_buffer += 1
-
-            print('Silhouette score of %.4f for %d clusters.' % (score, n_clust))
-
-        return np.array(sil_score)
-
-
-    def _get_sil_score(n_clusters, im_graph):
-        '''Get one Silhouette score.'''
-        kmeans = KMeans(n_clusters=n_clusters, n_jobs=2)
-        kmeans.fit(im_graph)
-
-        # y_kmeans = kmeans.predict(im_graph)
-        # plt.scatter(im_graph[:, 0], im_graph[:, 1],
-        #             c=y_kmeans, s=50, cmap='viridis')
-
-        # centers = kmeans.cluster_centers_
-        # plt.scatter(centers[:, 0], centers[:, 1], c='black', s=100, alpha=0.5);
-        labels = kmeans.labels_
-        sample_size = int(im_graph.size * 0.05)
-        return metrics.silhouette_score(im_graph, labels,
-                                        metric='euclidean',
-                                        sample_size=sample_size)
-
-
-    def _get_sil_max_pair(sil_scores):
-        '''Select pair with maximum silhouette score.'''
-        sc = sil_scores[..., 1]
-        arg = np.argmax(sc)
-
-        return sil_scores[arg]
-
-
-    def _get_frame_count(im):
-        im_graph = _get_point_array(im)
-
-        silhouette_scores = _get_sils(im_graph)
-        return _get_sil_max_pair(silhouette_scores)
-
-
-    def _get_channel_average(image, y_cut=None):
-        '''Average of color channels'''
-        return (image[:y_cut, :, 0] +
-                image[:y_cut, :, 1] +
-                image[:y_cut, :, 2]) / 3
-
-
-# def validateUrl(url):
-#     # req = Request(url)
-#     try:
-#         request.urlopen(url)
-#     except IOError as e:
-#         raise e
-#         print('Njah')
-#         return False
-
-#     return True
-
-
 def handle_args(args=None):
+    if args is None:
+        sys.exit('No image was given.')
+
     arg_list = get_parser().parse_args(args)
 
     if arg_list.list:
@@ -296,8 +276,9 @@ def handle_args(args=None):
         if os.path.isfile(arg_list.file):
             print(arg_list.file)
             im = _get_file_image(arg_list.file)
-            plt.imshow(im)
-            plt.show()
+            return im
+            # plt.imshow(im)
+            # plt.show()
         else:
             print('File not found.')
 
@@ -307,21 +288,9 @@ def handle_args(args=None):
         im = _get_url_image(arg_list.url)
         return im
 
-        # print(validateUrl(url))
-
-
-
-    # print(arg_list.list)
-    # print(arg_list.file)
-    # print(arg_list.url)
-
-    # image = ImageFrames()
 
 if __name__ == "__main__":
-    handle_args(sys.argv[1:])
+    # handle_args(sys.argv[1:])
 
-    # _get_url_image()
-    # kmeans()
-    # main()
-
-    # clusters()
+    im_frames = ImageFrames()
+    im_frames.seperate_frames()
