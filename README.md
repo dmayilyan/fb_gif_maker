@@ -1,4 +1,4 @@
-# fb sticker gif maker  !!!Semi-working!!!
+# fb sticker gif maker
 Making gifs from facebook stickers. It uses KNN to get amount of frames in the image and creates the frames correspondingly.
 
 # Is this an overkill?
