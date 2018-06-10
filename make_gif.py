@@ -28,7 +28,7 @@ from urllib import request
 import tempfile
 import shutil
 
-
+# Here is a problem
 filename = 's_man.png'
 
 
@@ -41,105 +41,20 @@ def get_parser(args=None):
                         help='List image files in the current dir.')
     parser.add_argument('-u', '--url',
                         help='Get an image from direct web link.')
+    parser.add_argument('--fps', nargs='?', const=10, type=int,
+                        help='Frame rate of the output gif.')
 
     return parser
 
 
-# class GifItem():
-#     def __init__(self):
-#         image = _get_file_image()
-
-#     def _get_file_image(self):
-#         filename = './shake.png'
-#         return imread(filename, mode='RGBA')
-
-
-def main1():
-    '''Main container of gif creation. Needs refactoring.'''
-    global image
-    global all_imege_count
-    global one_row_count
-    global filename
-    image = imread('./' + filename, mode='RGBA')
-
-    one_row_count = 2
-    all_imege_count = 4
-    column_count = int(all_imege_count // one_row_count)
-    print(column_count)
-    # print(all_imege_count % one_row_count)
-    if all_imege_count % one_row_count != 0:
-        column_count += 1
-
-    print(column_count)
-    # return 0
-    print(image.shape)
-    small_size_w = int(image.shape[1] / one_row_count)
-    small_size_h = int(image.shape[0] / column_count)
-
-    # images = np.zeros(60, 60)
-    print(small_size_w, small_size_h)
-
-    # plt.figure(1)
-    # plt.imshow(image)
-    plt.figure(2)
-
-    counter = 0
-    frames = []
-    # alphas = []
-    print('Width %d\tHeight: %d' % (image.shape[1], image.shape[0]))
-    print('One row: %d\tColumn_count: %d\n' % (one_row_count, column_count))
-
-    for i in range(column_count):
-        for j in range(one_row_count):
-            x = int((j % one_row_count) * small_size_w + small_size_w)
-            y = int((i % column_count) * small_size_h + small_size_h)
-
-            # print('X: %d\t Y: %d' % (x, y))
-
-            x0 = x - small_size_w
-            y0 = y - small_size_h
-            # print(x0, x)
-            # print(y0, y, end='\n\n')
-
-            # z = np.zeros((x,y))
-            # print(z)
-            if counter >= all_imege_count:
-                continue
-            plt.subplot(column_count, one_row_count, counter + 1)
-
-            # Here is a bug
-            # x,y = y,x
-            # x0,y0 = y0,x0
-            frames.append(image[y0:y, x0:x, :])
-            # alphas.append(z)
-            im = image[y0:y, x0:x, :]
-            # imsave("./tempdir/frame_%d.png" % counter, im)
-            plt.imshow(im)
-            # plt.show()
-
-            counter += 1
-
-    print(frames)
-
-    clip = ImageSequenceClip(frames, fps=10)
-    # clip = ImageSequenceClip('./tempdir/', fps=10, with_mask=True)
-    clip.write_gif(filename + '.gif')
-
-    # print(image[:, :, 0])
-
-    # im = image[:80, :80, :]
-    # print(im.shape)
-    # plt.imshow(im)
-    plt.show()
-
-class ImageFrames():
+class ImageFrames:
     """Create frames from input image"""
-    def __init__(self):
-        self.image = handle_args(sys.argv[1:])
+    def __init__(self, image):
+        self.image = image
         self.all_imege_count = 0
         self.one_row_count = 0
+        self.seperate_frames()
 
-        # print(arg_list)
         # super(ImageFrames, self).__init__()
         # self.arg = arg
 
@@ -157,7 +72,7 @@ class ImageFrames():
 
         # Second stage of scan.
         # Number of frames in one row
-        im = self._get_channel_average(80)
+        im = self._get_channel_average(50)
         # plt.imshow(im)
         # plt.show()
 
@@ -235,14 +150,85 @@ class ImageFrames():
                                         sample_size=sample_size)
 
 
+class GifItem(ImageFrames):
+    def __init__(self, image):
+        ImageFrames.__init__(self, image)
+        self.column_count = self._count_column()
+        self._make_frames()
+
+    def _count_column(self):
+        '''Main container of gif creation. Needs refactoring.'''
+
+        column_count = int(self.all_imege_count // self.one_row_count)
+        print(self.all_imege_count % self.one_row_count)
+        if self.all_imege_count % self.one_row_count != 0:
+            column_count += 1
+
+        return column_count
+
+
+    def _make_frames(self):
+        small_size_w = int(self.image.shape[1] / self.one_row_count)
+        small_size_h = int(self.image.shape[0] / self.column_count)
+
+        plt.figure(1)
+        plt.imshow(self.image)
+        plt.show()
+        plt.figure(2)
+
+        # alphas = []
+        print('Width %d\tHeight: %d' % (self.image.shape[1],
+                                        self.image.shape[0]))
+        print('One row: %d\tColumn_count: %d\n' % (self.one_row_count,
+                                                   self.column_count))
+
+        counter = 0
+        frames = []
+        for i in range(self.column_count):
+            for j in range(self.one_row_count):
+                x = int((j % self.one_row_count) * small_size_w + small_size_w)
+                y = int((i % self.column_count) * small_size_h + small_size_h)
+
+                # print('X: %d\t Y: %d' % (x, y))
+
+                x0 = x - small_size_w
+                y0 = y - small_size_h
+                # print(x0, x)
+                # print(y0, y, end='\n\n')
+
+                # z = np.zeros((x,y))
+                # print(z)
+                if counter >= self.all_imege_count:
+                    continue
+                plt.subplot(self.column_count,
+                            self.one_row_count,
+                            counter + 1)
+
+                frames.append(self.image[y0:y, x0:x, :])
+                # alphas.append(z)
+                im = self.image[y0:y, x0:x, :]
+                # imsave("./tempdir/frame_%d.png" % counter, im)
+                plt.imshow(im)
+                # plt.show()
+
+                counter += 1
+
+        self._make_gif(frames)
+
+        plt.show()
+
+    def _make_gif(self, frames):
+        clip = ImageSequenceClip(frames, fps=10)
+        # clip = ImageSequenceClip('./tempdir/', fps=10, with_mask=True)
+        clip.write_gif(filename + '.gif')
+
+
 def _get_file_image(fn):
     '''Read image from file.'''
     # global filename
     fn = './' + fn
     return imread(fn, mode='RGBA')
 
-
-# ========================================================
 def _get_url_image(url):
     # url = 'https://scontent-ams3-1.xx.fbcdn.net/v/t39.1997-6/p480x480/10333117_657500967666494_1630318166_n.png?_nc_cat=0&oh=321e4797068402fd69862e12ab4cce2e&oe=5B7672A8'
     im = ''
@@ -282,15 +268,21 @@ def handle_args(args=None):
         else:
             print('File not found.')
 
-    # url = 'https://scontent-ams3-1.xx.fbcdn.net/v/t39.1997-6/p480x480/10333117_657500967666494_1630318166_n.png?_nc_cat=0&oh=321e4797068402fd69862e12ab4cce2e&oe=5B7672A8'
-
     if arg_list.url:
         im = _get_url_image(arg_list.url)
         return im
 
 
+def main(arguments):
+    image = handle_args(arguments)
+
+    GifItem(image)
+
+
 if __name__ == "__main__":
     # handle_args(sys.argv[1:])
 
-    im_frames = ImageFrames()
-    im_frames.seperate_frames()
+    # im_frames = ImageFrames()
+    # im_frames.seperate_frames()
+
+    main(sys.argv[1:])
